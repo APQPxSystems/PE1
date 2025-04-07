@@ -31,7 +31,7 @@ st.title("Machine Health Monitoring")
 
 # Sidebar boxplot
 st.sidebar.subheader("Status Judgment Reference")
-st.sidebar.image("Boxplot.png")
+st.sidebar.image("MachineDiagnosis/Boxplot.png")
 
 # File uploader
 raw = st.file_uploader("Upload Excel file here:", type='xlsx')
