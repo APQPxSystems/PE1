@@ -216,6 +216,6 @@ st.write("_________________________________________________________")
 st.write("PE1 | K. Katigbak | rev. 01 | 2025")
 
 # Load and apply custom CSS
-with open("PE1_apps/style.css") as f:
+with open("MachineDiagnosis/style.css") as f:
     css = f.read()
 st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
