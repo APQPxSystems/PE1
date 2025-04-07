@@ -7,9 +7,9 @@ import plotly.express as px
 st.set_page_config(page_title="Machine Health | kentjk", layout="wide")
 hide_st_style = """
                 <style>
-                #MainMenu {visibility:visible;}
+                #MainMenu {visibility:hidden;}
                 footer {visibility:hidden;}
-                header {visibility:visible;}
+                header {visibility:hidden;}
                 </style>
                 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
