@@ -74,7 +74,7 @@ with tab1:
         else:
             st.session_state['raw'] = raw[required]
 
-            st.success("✅ File loaded successfully. Proceed to filtering.")
+            st.success("✅ File loaded successfully. Proceed to the next tabs.")
     else:
         st.info("📤 Please upload an Excel file to start.")
 
