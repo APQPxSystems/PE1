@@ -8,9 +8,9 @@ st.set_page_config(page_title="Machine Health | kentjk", layout="wide")
 # CSS styling
 st.markdown("""
     <style>
-    #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
-    header {visibility:hidden;}
+    #MainMenu {visibility:visible;}
+    footer {visibility:visible;}
+    header {visibility:visible;}
     .block-container {padding-top: 0rem; padding-bottom: 0rem;}
     </style>
 """, unsafe_allow_html=True)
@@ -24,7 +24,7 @@ st.sidebar.markdown("PE1 | K. Katigbak | rev. 02 | 2025")
 @st.cache_data(show_spinner="📂 Loading data...")
 def load_data(file):
     df = pd.read_excel(file)
-    df["Call Date Time"] = pd.to_datetime(df["Call Date Time"], errors="coerce")
+    df["Call Date No Time"] = pd.to_datetime(df["Call Date No Time"], errors="coerce")
     return df
 
 # --- HELPER: Health logic ---
@@ -67,14 +67,14 @@ with tab1:
         raw = load_data(uploaded_file)
 
         # Validate columns
-        required = ["Call Date Time", "Line", "Machine", "Machine No.",
+        required = ["Call Date No Time", "Line", "Machine", "Machine No.",
                     "Waiting Time (mins.)", "Fixing Time Duration (mins.)", "Total Loss Time"]
         if not all(col in raw.columns for col in required):
             st.error("❌ Missing one or more required columns.")
         else:
             st.session_state['raw'] = raw[required]
 
-            st.success("✅ File loaded successfully. Proceed to the next tabs.")
+            st.success("✅ File loaded successfully. Proceed to filtering.")
     else:
         st.info("📤 Please upload an Excel file to start.")
 
@@ -94,7 +94,7 @@ with tab2:
         date_range = st.date_input("📅 Date Range", [])
         if len(date_range) == 2:
             start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-            filtered = filtered[(filtered["Call Date Time"] >= start) & (filtered["Call Date Time"] <= end)]
+            filtered = filtered[(filtered["Call Date No Time"] >= start) & (filtered["Call Date No Time"] <= end)]
             num_days = (end - start).days + 1
             st.session_state['filtered'] = filtered
             st.session_state['num_days'] = num_days
@@ -130,6 +130,10 @@ with tab2:
             st.dataframe(st.session_state['summary_df'][health_cols].style.applymap(highlight_status), use_container_width=True)
 
 # ---------- TAB 3: Diagnosis ----------
+def update_selected_machine():
+    # This function will be called when the selected machine changes
+    st.session_state['selected_machine'] = st.session_state['selected_machine']
+
 with tab3:
     if 'summary_df' not in st.session_state:
         st.warning("⚠️ Please run the summary analysis first.")
@@ -139,7 +143,14 @@ with tab3:
         num_days = st.session_state['num_days']
 
         machine_list = summary_df.index.tolist()
-        selected_machine = st.selectbox("🔎 Select Machine No. for diagnosis", machine_list)
+        
+        # Use the selectbox with on_change to update the session state
+        selected_machine = st.selectbox(
+            "🔎 Select Machine No. for diagnosis", 
+            machine_list, 
+            key='selected_machine', 
+            on_change=update_selected_machine
+        )
 
         diag_data = filtered[filtered["Machine No."] == selected_machine]
 
@@ -159,7 +170,7 @@ with tab3:
 
         st.markdown("#### 📌 Improvement Suggestions")
         for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
-                    "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
+                       "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
             status = summary_df.loc[selected_machine, f"{metric}_Status"]
             label = metric.replace("Avg_Total_", "").replace("_", " ")
             if status == "Critical":
@@ -168,7 +179,7 @@ with tab3:
                 st.info(f"🟡 {label} is in WARNING – monitor it.")
             elif status == "Healthy":
                 st.success(f"✅ {label} is HEALTHY – all good.")
-                
+
 
 # ---------- TAB 4: Trends ----------
 with tab4:
@@ -182,6 +193,9 @@ with tab4:
         machine_list = summary_df.index.tolist()
         selected_machine = st.session_state.get('selected_machine', machine_list[0])
 
+        # Add a title indicating the source of the trend data
+        st.subheader(f"📈 Trend Data for Line: `{line}`, Machine: `{machine}`, Machine No.: `{selected_machine}`")
+
         pm_date_recorded = st.checkbox("Is there a recorded Preventive Maintenance Date?")
         if pm_date_recorded:
             pm_date = st.date_input("📅 Select Last Preventive Maintenance Date")
@@ -191,7 +205,7 @@ with tab4:
         trend_data = filtered[filtered["Machine No."] == selected_machine]
 
         # Aggregate data by day
-        trend_data['Date'] = trend_data['Call Date Time'].dt.date
+        trend_data['Date'] = trend_data['Call Date No Time'].dt.date
         daily_data = trend_data.groupby('Date').agg(
             Total_Loss_Time=('Total Loss Time', 'sum'),
             Andon_Count=('Total Loss Time', 'count')
@@ -277,7 +291,7 @@ with tab4:
                 # MTTR Analysis
                 st.plotly_chart(fig_mttr, use_container_width=True)
                 if slope_post_pm_mttr < 0:
-                    st.success("✅ The MTTR trend shows a downtrend after the Preventive Maintenance, indicating improved                     response times.")
+                    st.success("✅ The MTTR trend shows a downtrend after the Preventive Maintenance, indicating improved response times.")
                 elif slope_post_pm_mttr > 0:
                     st.warning("⚠️ The MTTR trend shows an uptrend after the Preventive Maintenance. This could suggest delays in addressing issues.")
                 else:
