@@ -20,7 +20,7 @@ st.markdown("""
 
 # Sidebar
 st.sidebar.subheader("Status Judgment Reference")
-st.sidebar.image("PE1_apps\Boxplot.png")
+st.sidebar.image("MachineDiagnosis\Boxplot.png")
 st.sidebar.markdown("PE1 | K. Katigbak | rev. 02 | 2025")
 
 # --- CACHE: File loading (expensive operation) ---
