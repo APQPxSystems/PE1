@@ -11,9 +11,9 @@ st.set_page_config(page_title="Machine Health | kentjk", layout="wide")
 # CSS styling
 st.markdown("""
     <style>
-    #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
-    header {visibility:hidden;}
+    #MainMenu {visibility:visible;}
+    footer {visibility:visible;}
+    header {visibility:visible;}
     .block-container {padding-top: 0rem; padding-bottom: 0rem;}
     </style>
 """, unsafe_allow_html=True)
@@ -214,7 +214,7 @@ with tab4:
         selected_machine = st.session_state.get('selected_machine', machine_list[0])
 
         # Add a title indicating the source of the trend data
-        st.subheader(f"📈 Trend Data for Line: `{line}`, Machine: `{machine}`, Machine No.: `{selected_machine}`")
+        st.subheader(f"📈 Trendline and Slope of the Line Formula: \n Line: `{line}`, Machine: `{machine}`, Machine No.: `{selected_machine}`")
 
         pm_date_recorded = st.checkbox("Is there a recorded Preventive Maintenance Date?")
         if pm_date_recorded:
@@ -337,6 +337,9 @@ with tab5:
         summary_df = st.session_state['summary_df']
         machine_list = summary_df.index.tolist()
         selected_machine = st.session_state.get('selected_machine', machine_list[0])
+        
+        # Add a title indicating the source of the trend data
+        st.subheader(f"📅 Autoregressive Integrated Moving Average (ARIMA) Forecast: \n Line: `{line}`, Machine: `{machine}`, Machine No.: `{selected_machine}`")
 
         # Filter the data based on the selected machine
         forecast_data = filtered[filtered["Machine No."] == selected_machine]
