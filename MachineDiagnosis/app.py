@@ -2,22 +2,25 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from statsmodels.tsa.arima.model import ARIMA
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Machine Health | kentjk", layout="wide")
 
 # CSS styling
 st.markdown("""
     <style>
-    #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
-    header {visibility:hidden;}
+    #MainMenu {visibility:visible;}
+    footer {visibility:visible;}
+    header {visibility:visible;}
     .block-container {padding-top: 0rem; padding-bottom: 0rem;}
     </style>
 """, unsafe_allow_html=True)
 
 # Sidebar
 st.sidebar.subheader("Status Judgment Reference")
-st.sidebar.image("MachineDiagnosis/Boxplot.png")
+st.sidebar.image("PE1_apps\Boxplot.png")
 st.sidebar.markdown("PE1 | K. Katigbak | rev. 02 | 2025")
 
 # --- CACHE: File loading (expensive operation) ---
@@ -54,10 +57,28 @@ def highlight_status(val):
             return 'background-color: green; color: white'
     return ''
 
+# ARIMA Forecast function
+def arima_forecast(data, forecast_days):
+    def forecast_series(series):
+        # Ensure series has no NaNs and proper indexing
+        series = series.dropna()
+        if len(series) < 2:
+            return pd.Series([0]*forecast_days)
+        model = ARIMA(series, order=(5,1,0))
+        model_fit = model.fit()
+        forecast = model_fit.forecast(steps=forecast_days)
+        return pd.Series(forecast)
+
+    andon_forecast = forecast_series(data['Andon_Count'])
+    loss_forecast = forecast_series(data['Total_Loss_Time'])
+    mttr_forecast = forecast_series(data['MTTR'])
+
+    return andon_forecast, loss_forecast, mttr_forecast
+
 # ---------------- MAIN APP ----------------
 st.title("🛠️ Machine Health Monitoring")
 
-tab1, tab2, tab3, tab4 = st.tabs(["📁 Upload & Filter", "📊 Summary & Health", "🔍 Diagnosis", "📈 Trends"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📁 Upload & Filter", "📊 Summary & Health", "🔍 Diagnosis", "📈 Trends", "📅 ARIMA Forecast"])
 
 # ---------- TAB 1: Upload & Filter ----------
 with tab1:
@@ -170,7 +191,7 @@ with tab3:
 
         st.markdown("#### 📌 Improvement Suggestions")
         for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
-                       "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
+                    "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
             status = summary_df.loc[selected_machine, f"{metric}_Status"]
             label = metric.replace("Avg_Total_", "").replace("_", " ")
             if status == "Critical":
@@ -179,7 +200,6 @@ with tab3:
                 st.info(f"🟡 {label} is in WARNING – monitor it.")
             elif status == "Healthy":
                 st.success(f"✅ {label} is HEALTHY – all good.")
-
 
 # ---------- TAB 4: Trends ----------
 with tab4:
@@ -305,5 +325,85 @@ with tab4:
             st.plotly_chart(fig_loss_time, use_container_width=True)
             st.plotly_chart(fig_andon_count, use_container_width=True)
             st.plotly_chart(fig_mttr, use_container_width=True)
+            
+# ---------- TAB 5: ARIMA Forecast ----------
+with tab5:
+    if 'filtered' not in st.session_state or 'summary_df' not in st.session_state:
+        st.warning("⚠️ Please upload a file and run the summary analysis first.")
+    else:
+        # Retrieve selected filters
+        filtered = st.session_state['filtered']
+        num_days = st.session_state['num_days']
+        summary_df = st.session_state['summary_df']
+        machine_list = summary_df.index.tolist()
+        selected_machine = st.session_state.get('selected_machine', machine_list[0])
+
+        # Filter the data based on the selected machine
+        forecast_data = filtered[filtered["Machine No."] == selected_machine]
+        forecast_data['Date'] = forecast_data['Call Date No Time'].dt.date
+        
+        # Aggregate by date (just in case)
+        daily_data = forecast_data.groupby('Date').agg(
+            Total_Loss_Time=('Total Loss Time', 'sum'),
+            Andon_Count=('Total Loss Time', 'count')
+        ).reset_index()
+        daily_data['MTTR'] = daily_data['Total_Loss_Time'] / daily_data['Andon_Count'] / 60
+
+        # Input: Number of forecast days
+        forecast_days = st.number_input("Enter the number of days to forecast", min_value=1, max_value=365, value=30)
+
+        # Perform ARIMA Forecast with error handling
+        try:
+            andon_forecast, loss_forecast, mttr_forecast = arima_forecast(daily_data, forecast_days)
+
+            # Plotting results
+            fig, axes = plt.subplots(3, 1, figsize=(10, 15))
+
+            # Plot Andon Count Forecast
+            axes[0].plot(daily_data['Date'], daily_data['Andon_Count'], label='Actual', color='blue')
+            axes[0].plot(pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], andon_forecast, label='Forecast', color='red')
+            axes[0].set_title('Andon Count Forecast')
+            axes[0].legend()
+
+            # Plot Total Loss Time Forecast
+            axes[1].plot(daily_data['Date'], daily_data['Total_Loss_Time'], label='Actual', color='blue')
+            axes[1].plot(pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], loss_forecast, label='Forecast', color='red')
+            axes[1].set_title('Total Loss Time Forecast')
+            axes[1].legend()
+
+            # Plot MTTR Forecast
+            axes[2].plot(daily_data['Date'], daily_data['MTTR'], label='Actual', color='blue')
+            axes[2].plot(pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], mttr_forecast, label='Forecast', color='red')
+            axes[2].set_title('MTTR Forecast')
+            axes[2].legend()
+
+            # Display the plots
+            # st.pyplot(fig)
+
+            # Optional: Display interactive forecast charts using Plotly
+            # Total Loss Time Forecast Chart
+            fig_loss = go.Figure()
+            fig_loss.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['Total_Loss_Time'], mode='lines', name='Actual Total Loss Time'))
+            fig_loss.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=loss_forecast, mode='lines', name='Forecast Total Loss Time', line=dict(dash='dot')))
+            fig_loss.update_layout(title="Total Loss Time Forecast", xaxis_title="Date", yaxis_title="Total Loss Time")
+            st.plotly_chart(fig_loss)
+            
+            # Andon Count Forecast Chart
+            fig_andon = go.Figure()
+            fig_andon.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['Andon_Count'], mode='lines', name='Actual Andon Count'))
+            fig_andon.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=andon_forecast, mode='lines', name='Forecast Andon Count', line=dict(dash='dot')))
+            fig_andon.update_layout(title="Andon Count Forecast", xaxis_title="Date", yaxis_title="Andon Count")
+            st.plotly_chart(fig_andon)
+
+            # MTTR Forecast Chart
+            fig_mttr = go.Figure()
+            fig_mttr.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['MTTR'], mode='lines', name='Actual MTTR'))
+            fig_mttr.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=mttr_forecast, mode='lines', name='Forecast MTTR', line=dict(dash='dot')))
+            fig_mttr.update_layout(title="MTTR Forecast", xaxis_title="Date", yaxis_title="MTTR")
+            st.plotly_chart(fig_mttr)
+
+        except Exception as e:
+            # Display a user-friendly error message
+            st.error(f"Cannot forecast due to: {str(e)}")
 
 st.write("---")
