@@ -1,5 +1,6 @@
 streamlit
-openpyxl
 numpy
 pandas
 plotly
+statsmodels
+matplotlib
