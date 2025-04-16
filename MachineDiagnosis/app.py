@@ -6,23 +6,66 @@ import plotly.graph_objects as go
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Machine Health | kentjk", layout="wide")
+st.set_page_config(page_title="Machine Health Num | kentjk", layout="wide")
 
 # CSS styling
 st.markdown("""
     <style>
-    #MainMenu {visibility:hidden;}
-    footer {visibility:hidden;}
-    header {visibility:hidden;}
+    #MainMenu {visibility:visible;}
+    footer {visibility:visible;}
+    header {visibility:visible;}
     .block-container {padding-top: 0rem; padding-bottom: 0rem;}
     </style>
 """, unsafe_allow_html=True)
 
 # Sidebar
-st.sidebar.subheader("Status Judgment Reference")
-st.sidebar.image("MachineDiagnosis/Boxplot.png")
-st.sidebar.markdown("PE1 | K. Katigbak | rev. 02 | 2025")
+with st.sidebar:
+    st.markdown("©Kent Katigbak | PE1 | rev02 | 2025")
+    st.divider()
+    st.subheader("Full App Guide")
+    
+    faq= st.selectbox("Please select FAQ",
+                ["How to use the app?", "Does the app store the uploaded data?",
+                "What are the criteria for machine health?",
+                "What does the trend formula mean?",
+                "What is ARIMA forecasting?"])
 
+    if faq == "How to use the app?":
+        st.markdown("1. Go to the  PE1 machine monitoring dashboard.")
+        st.markdown("2. Click on the MH Data on the upper rght corner under the red cross.")
+        st.markdown("3. An excel file will open. Save a copy of the file.")
+        st.markdown("4. Drag and drop the file into the app (first tab).")
+        st.markdown("5. Proceed to the next tabs.")
+    
+    elif faq == "Does the app store the uploaded data?":
+        st.markdown("""The app is not connected to any database.
+                    It will only process the uploaded file but the dat is not saved.
+                    The data will also vanish once the app is refreshed.""")
+        
+    elif faq == "What are the criteria for machine health?":
+        st.markdown("Daily Andon Count:")
+        st.markdown("Healthy<1 | 1<Warning<2 | Critical>2")
+        st.markdown("Average Waiting Time (mins):")
+        st.markdown("Healthy<8 | 8<Warning<10 | Critical>10")
+        st.markdown("Average Fixing Time (mins):")
+        st.markdown("Healthy<60 | 60<Warning<90 | Critical>90")
+        st.markdown("Average Loss Time (mins):")
+        st.markdown("Healthy<68 | 68<Warning<98 | Critical>98")
+        
+    elif faq == "What does the trend formula mean?":
+        st.markdown("""The trend formula is in the algebraic form (y=mx+b). 
+                    (m) is the constant beside the variable (x).
+                    A positive (m) signifies uptrend while a negative m signifies downtrend.""")
+    
+    else:
+        st.markdown("""ARIMA (AutoRegressive Integrated Moving Average) is a time series forecasting model
+                    that combines three components: autoregression (AR), which uses the relationship between
+                    an observation and a number of lagged observations; differencing (I) to make the time series
+                    stationary by removing trends; and moving average (MA), which models the relationship
+                    between an observation and a residual error from a moving average model applied to lagged
+                    observations. The model is specified by three parameters (p, d, q), where p is the order of
+                    the AR part, d is the degree of differencing, and q is the order of the MA part.""")
+        
 # --- CACHE: File loading (expensive operation) ---
 @st.cache_data(show_spinner="📂 Loading data...")
 def load_data(file):
@@ -31,19 +74,38 @@ def load_data(file):
     return df
 
 # --- HELPER: Health logic ---
-def categorize_health(col):
-    q1, q3 = np.percentile(col, [25, 75])
-    iqr = q3 - q1
-    lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-    median = np.median(col)
-
+def categorize_health(col, metric):
     def status(val):
-        if val < lower or val < median:
-            return "Healthy"
-        elif val > upper:
-            return "Critical"
+        if metric == "Avg_Total_Defects":
+            if val < 1:
+                return "Healthy"
+            elif 1 <= val <= 2:
+                return "Warning"
+            else:
+                return "Critical"
+        elif metric == "Avg_Total_Waiting_Time":
+            if val < 8:
+                return "Healthy"
+            elif 8 <= val <= 10:
+                return "Warning"
+            else:
+                return "Critical"
+        elif metric == "Avg_Total_Fixing_Time":
+            if val < 60:
+                return "Healthy"
+            elif 60 <= val <= 90:
+                return "Warning"
+            else:
+                return "Critical"
+        elif metric == "Avg_Total_Loss_Time":
+            if val < 68:
+                return "Healthy"
+            elif 68 <= val <= 98:
+                return "Warning"
+            else:
+                return "Critical"
         else:
-            return "Warning"
+            return "Unknown"
 
     return col.apply(status)
 
@@ -120,35 +182,145 @@ with tab2:
             st.session_state['filtered'] = filtered
             st.session_state['num_days'] = num_days
 
-            if st.button("✅ Run Analysis"):
-                df = filtered.groupby("Machine No.", as_index=True).agg(
+            df = filtered.groupby("Machine No.", as_index=True).agg(
+                Total_Defects=("Machine No.", "count"),
+                Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
+                Total_Fixing_Time=("Fixing Time Duration (mins.)", "sum"),
+                Total_Loss_Time=("Total Loss Time", "sum")
+            )
+
+            # Calculate averages
+            for col in df.columns:
+                df[f"Avg_{col}"] = df[col] / num_days
+
+            # Round all float columns to 2 decimals
+            df = df.round(2)
+
+            # Categorize health
+            for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
+                        "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
+                df[f"{metric}_Status"] = categorize_health(df[metric], metric)
+
+            st.session_state['summary_df'] = df
+
+            if 'summary_df' in st.session_state:
+                st.subheader("📊 Machine Number Summary")
+                # Exclude columns that end with "_Status"
+                summary_no_status = st.session_state['summary_df'].loc[:, ~st.session_state['summary_df'].columns.str.endswith("_Status")]
+                st.dataframe(summary_no_status, use_container_width=True)
+
+                st.subheader(f"✅ Overall Machine Health Status \n ({start.date().strftime('%B %d, %Y')} to {end.date().strftime('%B %d, %Y')})")
+                health_cols = [col for col in st.session_state['summary_df'].columns if "Status" in col]
+                st.dataframe(st.session_state['summary_df'][health_cols].style.applymap(highlight_status), use_container_width=True)
+                
+                st.markdown("""
+                            Disclaimer: The data above is the accumulated data for the whole selected date range.
+                            Figures may look different on the daily basis as presented in the daily trend bar chart below.
+                            """)
+
+                # --- New Feature: Category Distribution and Trend ---
+                st.subheader("📈 Health Status Daily Trend")
+
+                metric_display = {
+                    "Avg_Total_Defects": "Total Defects",
+                    "Avg_Total_Waiting_Time": "Total Waiting Time",
+                    "Avg_Total_Fixing_Time": "Total Fixing Time",
+                    "Avg_Total_Loss_Time": "Total Loss Time"
+                }
+
+                metric_map = {v: k for k, v in metric_display.items()}
+                selected_metric = st.selectbox("📊 Select Metric for Trend", list(metric_display.values()))
+                selected_col = metric_map[selected_metric]
+
+                # Prepare daily machine stats with daily averages
+                daily = filtered.copy()
+                daily["Date"] = pd.to_datetime(daily["Call Date No Time"]).dt.date
+                grouped = daily.groupby(["Date", "Machine No."]).agg(
                     Total_Defects=("Machine No.", "count"),
                     Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
                     Total_Fixing_Time=("Fixing Time Duration (mins.)", "sum"),
                     Total_Loss_Time=("Total Loss Time", "sum")
+                ).reset_index()
+
+                # Add daily averages (1-day basis)
+                metric_internal = selected_col.replace("Avg_", "")
+                grouped[selected_col] = grouped[metric_internal]
+
+                # Categorize machine health per day
+                grouped["Health_Status"] = categorize_health(grouped[selected_col], selected_col)
+
+                # Count health status per day and collect machine numbers accurately
+                status_counts = grouped.groupby(["Date", "Health_Status"]).agg(
+                    Count=("Health_Status", "size"),
+                    Machines=("Machine No.", lambda x: ', '.join(map(str, sorted(x.unique()))))
+                ).reset_index()
+
+                # Pivot tables for plotting
+                pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Count").fillna(0).astype(int)
+                machines_pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Machines").fillna('')
+
+                # Ensure order of bars
+                for status in ["Healthy", "Warning", "Critical"]:
+                    if status not in pivoted.columns:
+                        pivoted[status] = 0
+                        machines_pivoted[status] = ''
+
+                # Plotting
+                fig = go.Figure()
+                color_map = {"Healthy": "green", "Warning": "yellow", "Critical": "red"}
+
+                for status in ["Healthy", "Warning", "Critical"]:
+                    fig.add_trace(go.Bar(
+                        x=pivoted.index,
+                        y=pivoted[status],
+                        name=status,
+                        marker_color=color_map[status],
+                        hovertemplate=[
+                            f"Date: {date}<br>"
+                            f"{status}<br>"
+                            f"Count: {count}<br>"
+                            f"Machine No/s: {machines_pivoted.loc[date, status]}<br>"
+                            "<extra></extra>"
+                            for date, count in zip(pivoted.index, pivoted[status])
+                        ]
+                    ))
+
+                fig.update_layout(
+                    barmode='stack',
+                    title=dict(
+                        text=f"📆 Daily Health Status Count for {selected_metric} (by daily averages)",
+                        font=dict(color='black')  # Pure black title
+                    ),
+                    xaxis=dict(
+                        title=dict(text="Date", font=dict(color='black')),
+                        tickfont=dict(color='black'),
+                        linecolor='black',
+                        tickcolor='black'
+                    ),
+                    yaxis=dict(
+                        title=dict(text="Machine Count", font=dict(color='black')),
+                        tickfont=dict(color='black'),
+                        linecolor='black',
+                        tickcolor='black'
+                    ),
+                    legend=dict(
+                        title=dict(text="Health Status", font=dict(color='black')),
+                        font=dict(color='black')
+                    ),
+                    plot_bgcolor='white',
+                    paper_bgcolor='white',
+                    height=500
                 )
+                
+                st.plotly_chart(fig, use_container_width=True)
 
-                # Calculate averages
-                for col in df.columns:
-                    df[f"Avg_{col}"] = df[col] / num_days
-
-                # Round all float columns to 2 decimals
-                df = df.round(2)
-
-                # Categorize health
-                for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
-                            "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
-                    df[f"{metric}_Status"] = categorize_health(df[metric])
-
-                st.session_state['summary_df'] = df
-
-        if 'summary_df' in st.session_state:
-            st.subheader("📊 Machine Number Summary")
-            st.dataframe(st.session_state['summary_df'], use_container_width=True)
-
-            st.subheader("✅ Machine Health Status")
-            health_cols = [col for col in st.session_state['summary_df'].columns if "Status" in col]
-            st.dataframe(st.session_state['summary_df'][health_cols].style.applymap(highlight_status), use_container_width=True)
+                st.markdown("""
+                        Disclaimer: These are the data of the machines with Andon daily.
+                        The total will look diffrent each day because some machines do not have Andon everyday.
+                        """)
+                
+        else:
+            st.markdown("Please select date range.")
 
 # ---------- TAB 3: Diagnosis ----------
 def update_selected_machine():
@@ -463,7 +635,12 @@ with tab5:
             st.plotly_chart(fig_mttr)
 
         except Exception as e:
-            # Display a user-friendly error message
+            # Display error message
             st.error(f"Cannot forecast due to: {str(e)}")
 
 st.write("---")
+
+with open("MachineDiagnosis/style.css") as f:
+    css = f.read()
+    
+st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
