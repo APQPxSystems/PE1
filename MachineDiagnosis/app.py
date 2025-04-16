@@ -251,25 +251,58 @@ with tab4:
 
         # Create trendline charts
         fig_loss_time = px.line(daily_data, x="Date", y="Total_Loss_Time", title="Total Loss Time Trend")
-        fig_loss_time.add_scatter(x=daily_data["Date"], y=daily_data["Trend_Loss_Time"], mode='lines', name=f"Trendline: y = {slope_loss_time:.2f}x + {intercept_loss_time:.2f}", line=dict(dash="dash", color="red"))
+        fig_loss_time.update_traces(line=dict(color='darkblue', width=3))
+        fig_loss_time.add_scatter(x=daily_data["Date"], y=daily_data["Trend_Loss_Time"], mode='lines', name=f"Trendline: y = {slope_loss_time:.2f}x + {intercept_loss_time:.2f}", line=dict(dash="dash", color="red", width=2))
+
+        fig_loss_time.update_layout(
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black'))
+        )
 
         fig_andon_count = px.line(daily_data, x="Date", y="Andon_Count", title="Andon Count Trend")
-        fig_andon_count.add_scatter(x=daily_data["Date"], y=daily_data["Trend_Andon_Count"], mode='lines', name=f"Trendline: y = {slope_andon_count:.2f}x + {intercept_andon_count:.2f}", line=dict(dash="dash", color="red"))
+        fig_andon_count.update_traces(line=dict(color='darkblue', width=3))
+        fig_andon_count.add_scatter(x=daily_data["Date"], y=daily_data["Trend_Andon_Count"], mode='lines', name=f"Trendline: y = {slope_andon_count:.2f}x + {intercept_andon_count:.2f}", line=dict(dash="dash", color="red", width=2))
+
+        fig_andon_count.update_layout(
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black'))
+        )
 
         fig_mttr = px.line(daily_data, x="Date", y="MTTR", title="MTTR Trend")
-        fig_mttr.add_scatter(x=daily_data["Date"], y=daily_data["Trend_MTTR"], mode='lines', name=f"Trendline: y = {slope_mttr:.2f}x + {intercept_mttr:.2f}", line=dict(dash="dash", color="red"))
+        fig_mttr.update_traces(line=dict(color='darkblue', width=3))
+        fig_mttr.add_scatter(x=daily_data["Date"], y=daily_data["Trend_MTTR"], mode='lines', name=f"Trendline: y = {slope_mttr:.2f}x + {intercept_mttr:.2f}", line=dict(dash="dash", color="red", width=2))
+
+        fig_mttr.update_layout(
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black'))
+        )
 
         # Add target lines for specific machines
-        fig_mttr.add_shape(type="line", x0=pd.Timestamp(daily_data["Date"].min()), x1=pd.Timestamp(daily_data["Date"].max()), y0=0.78, y1=0.78, line=dict(color="Yellow", dash="dash"))
-        fig_mttr.add_annotation(x=pd.Timestamp(daily_data["Date"].max()), y=0.78, text="SAM Target", showarrow=True, arrowhead=2, ax=0, ay=-40, font=dict(color="Yellow"))
-        fig_mttr.add_shape(type="line", x0=pd.Timestamp(daily_data["Date"].min()), x1=pd.Timestamp(daily_data["Date"].max()), y0=0.38, y1=0.38, line=dict(color="Yellow", dash="dash"))
-        fig_mttr.add_annotation(x=pd.Timestamp(daily_data["Date"].max()), y=0.38, text="TRD Target", showarrow=True, arrowhead=2, ax=0, ay=-40, font=dict(color="Yellow"))
+        fig_mttr.add_shape(type="line", x0=pd.Timestamp(daily_data["Date"].min()), x1=pd.Timestamp(daily_data["Date"].max()), y0=0.74, y1=0.74, line=dict(color="darkblue", dash="dash", width=2))
+        fig_mttr.add_annotation(x=pd.Timestamp(daily_data["Date"].max()), y=0.74, text="SAM Target", showarrow=True, arrowhead=2, ax=0, ay=-40, font=dict(color="darkblue"))
+        fig_mttr.add_shape(type="line", x0=pd.Timestamp(daily_data["Date"].min()), x1=pd.Timestamp(daily_data["Date"].max()), y0=0.38, y1=0.38, line=dict(color="darkblue", dash="dash", width=2))
+        fig_mttr.add_annotation(x=pd.Timestamp(daily_data["Date"].max()), y=0.38, text="TRD Target", showarrow=True, arrowhead=2, ax=0, ay=-40, font=dict(color="darkblue"))
 
         # Add Preventive Maintenance date marker
         if pm_date_recorded:
-            fig_loss_time.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Total_Loss_Time"].max(), line=dict(color="Blue", dash="dot"))
-            fig_andon_count.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Andon_Count"].max(), line=dict(color="Blue", dash="dot"))
-            fig_mttr.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["MTTR"].max(), line=dict(color="Blue", dash="dot"))
+            fig_loss_time.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Total_Loss_Time"].max(), line=dict(color="Green", width=5))
+            fig_andon_count.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Andon_Count"].max(), line=dict(color="Green", width=5))
+            fig_mttr.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["MTTR"].max(), line=dict(color="Green", width=5))
 
             # Calculate trends after the PM date
             post_pm_data = daily_data[daily_data["Date"] > pm_date.date()]
@@ -283,9 +316,9 @@ with tab4:
                 post_pm_data["Trend_MTTR"] = slope_post_pm_mttr * np.arange(len(post_pm_data)) + intercept_post_pm_mttr
 
                 # Add post-PM trendlines to the figures
-                fig_loss_time.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_Loss_Time"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_loss_time:.2f}x + {intercept_post_pm_loss_time:.2f}", line=dict(dash="dot", color="green"))
-                fig_andon_count.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_Andon_Count"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_andon_count:.2f}x + {intercept_post_pm_andon_count:.2f}", line=dict(dash="dot", color="green"))
-                fig_mttr.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_MTTR"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_mttr:.2f}x + {intercept_post_pm_mttr:.2f}", line=dict(dash="dot", color="green"))
+                fig_loss_time.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_Loss_Time"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_loss_time:.2f}x + {intercept_post_pm_loss_time:.2f}", line=dict(dash="dash", color="green", width=2))
+                fig_andon_count.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_Andon_Count"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_andon_count:.2f}x + {intercept_post_pm_andon_count:.2f}", line=dict(dash="dash", color="green", width=2))
+                fig_mttr.add_scatter(x=post_pm_data["Date"], y=post_pm_data["Trend_MTTR"], mode='lines', name=f"Post-PM Trendline: y = {slope_post_pm_mttr:.2f}x + {intercept_post_pm_mttr:.2f}", line=dict(dash="dash", color="green", width=2))
 
                 # Individual analysis for each graph
                 st.markdown("#### Preventive Maintenance Analysis")
@@ -383,26 +416,50 @@ with tab5:
             # Display the plots
             # st.pyplot(fig)
 
-            # Optional: Display interactive forecast charts using Plotly
+            # Display interactive forecast charts using Plotly
             # Total Loss Time Forecast Chart
             fig_loss = go.Figure()
             fig_loss.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['Total_Loss_Time'], mode='lines', name='Actual Total Loss Time'))
             fig_loss.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=loss_forecast, mode='lines', name='Forecast Total Loss Time', line=dict(dash='dot')))
-            fig_loss.update_layout(title="Total Loss Time Forecast", xaxis_title="Date", yaxis_title="Total Loss Time")
+            fig_loss.update_traces(line=dict(color='darkblue', width=3))
+            fig_loss.update_layout(title="Total Loss Time Forecast",xaxis_title="Date", yaxis_title="Total Loss Time",
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')))
             st.plotly_chart(fig_loss)
-            
+                        
             # Andon Count Forecast Chart
             fig_andon = go.Figure()
             fig_andon.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['Andon_Count'], mode='lines', name='Actual Andon Count'))
             fig_andon.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=andon_forecast, mode='lines', name='Forecast Andon Count', line=dict(dash='dot')))
-            fig_andon.update_layout(title="Andon Count Forecast", xaxis_title="Date", yaxis_title="Andon Count")
+            fig_andon.update_traces(line=dict(color='darkblue', width=3))
+            fig_andon.update_layout(title="Andon Count Forecast", xaxis_title="Date", yaxis_title="Andon Count",
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')))
             st.plotly_chart(fig_andon)
 
             # MTTR Forecast Chart
             fig_mttr = go.Figure()
             fig_mttr.add_trace(go.Scatter(x=daily_data['Date'], y=daily_data['MTTR'], mode='lines', name='Actual MTTR'))
             fig_mttr.add_trace(go.Scatter(x=pd.date_range(daily_data['Date'].iloc[-1], periods=forecast_days + 1, freq='D')[1:], y=mttr_forecast, mode='lines', name='Forecast MTTR', line=dict(dash='dot')))
-            fig_mttr.update_layout(title="MTTR Forecast", xaxis_title="Date", yaxis_title="MTTR")
+            fig_mttr.update_traces(line=dict(color='darkblue', width=3))
+            fig_mttr.update_layout(title="MTTR Forecast", xaxis_title="Date", yaxis_title="MTTR",
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black'),
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')),
+            yaxis=dict(title_font=dict(color='black'), tickfont=dict(color='black')))
             st.plotly_chart(fig_mttr)
 
         except Exception as e:
