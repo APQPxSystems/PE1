@@ -39,7 +39,7 @@ with st.sidebar:
     
     elif faq == "Does the app store the uploaded data?":
         st.markdown("""The app is not connected to any database.
-                    It will only process the uploaded file but the dat is not saved.
+                    It will only process the uploaded file but the data is not saved.
                     The data will also vanish once the app is refreshed.""")
         
     elif faq == "What are the criteria for machine health?":
