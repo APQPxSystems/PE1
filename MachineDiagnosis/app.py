@@ -43,13 +43,13 @@ with st.sidebar:
                     The data will also vanish once the app is refreshed.""")
         
     elif faq == "What are the criteria for machine health?":
-        st.markdown("Daily Andon Count:")
+        st.markdown("<b><u>Daily Andon Count:</u></b>", unsafe_allow_html=True)
         st.markdown("Healthy<1 | 1<Warning<2 | Critical>2")
-        st.markdown("Average Waiting Time (mins):")
+        st.markdown("<b><u>Average Waiting Time (mins):</u></b>", unsafe_allow_html=True)
         st.markdown("Healthy<8 | 8<Warning<10 | Critical>10")
-        st.markdown("Average Fixing Time (mins):")
+        st.markdown("<b><u>Average Fixing Time (mins):</u></b>", unsafe_allow_html=True)
         st.markdown("Healthy<60 | 60<Warning<90 | Critical>90")
-        st.markdown("Average Loss Time (mins):")
+        st.markdown("<b><u>Average Loss Time (mins):</u></b>", unsafe_allow_html=True)
         st.markdown("Healthy<68 | 68<Warning<98 | Critical>98")
         
     elif faq == "What does the trend formula mean?":
