@@ -53,10 +53,11 @@ with st.sidebar:
         st.markdown("Healthy<68 | 68<Warning<98 | Critical>98")
         
     elif faq == "What does the trend formula mean?":
-        st.markdown("""The trend formula is in the algebraic form (y=mx+b). 
-                    (m) is the constant beside the variable (x).
-                    A positive (m) signifies uptrend while a negative m signifies downtrend.""")
-    
+        st.markdown("""The trend formula is in the algebraic form <b><i>y=mx+b</i></b>. 
+                    <b><i>m</i></b> is the constant beside the variable <b><i>x</i></b>.
+                    A positive <b><i>m</i></b> signifies uptrend while a negative <b><i>m</i></b>
+                    signifies downtrend.""", unsafe_allow_html=True)
+        
     else:
         st.markdown("""ARIMA (AutoRegressive Integrated Moving Average) is a time series forecasting model
                     that combines three components: autoregression (AR), which uses the relationship between
