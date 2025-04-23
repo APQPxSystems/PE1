@@ -20,7 +20,7 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-    st.markdown("©Kent Katigbak | PE1 | rev02 | 2025")
+    st.info("©Kent Katigbak | PE1 | rev02 | 2025")
     st.divider()
     st.subheader("Full App Guide")
     
