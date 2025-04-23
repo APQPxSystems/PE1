@@ -1,3 +1,7 @@
+# Machine Diagnosis/ Health Monitoring App
+# Kent Katigbak -- PE1 -- rev02 -- 2025
+
+# Import libraries
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -6,9 +10,9 @@ import plotly.graph_objects as go
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
 
+# Page configurations
 st.set_page_config(page_title="Machine Health Num | kentjk", layout="wide")
 
-# CSS styling
 st.markdown("""
     <style>
     #MainMenu {visibility:hidden;}
@@ -18,7 +22,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Sidebar
+# Sidebar contents
 with st.sidebar:
     st.info("©Kent Katigbak | PE1 | rev02 | 2025")
     st.divider()
@@ -319,7 +323,7 @@ with tab2:
                         Disclaimer: These are the data of the machines with Andon daily.
                         The total will look diffrent each day because some machines do not have Andon everyday.
                         """)
-                
+
         else:
             st.markdown("Please select date range.")
 
