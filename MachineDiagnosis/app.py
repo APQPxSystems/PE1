@@ -504,9 +504,9 @@ else:
 
             # Add Preventive Maintenance date marker
             if pm_date_recorded:
-                fig_loss_time.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Total_Loss_Time"].max(), line=dict(color="Green", width=5))
-                fig_andon_count.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Andon_Count"].max(), line=dict(color="Green", width=5))
-                fig_mttr.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["MTTR"].max(), line=dict(color="Green", width=5))
+                fig_loss_time.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Total_Loss_Time"].max(), line=dict(color="Green", width=3))
+                fig_andon_count.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["Andon_Count"].max(), line=dict(color="Green", width=3))
+                fig_mttr.add_shape(type="line", x0=pm_date, x1=pm_date, y0=0, y1=daily_data["MTTR"].max(), line=dict(color="Green", width=3))
 
                 # Calculate trends after the PM date
                 post_pm_data = daily_data[daily_data["Date"] > pm_date.date()]
