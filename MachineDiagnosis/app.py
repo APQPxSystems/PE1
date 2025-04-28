@@ -9,7 +9,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
-import os
 
 st.set_page_config(page_title="Machine Health Num | kentjk", layout="wide")
 
@@ -24,7 +23,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Define the correct password
-correct_password = os.getenv(correct_password)
+correct_password = st.secrets(correct_password)
 
 # Create a session state to store the authentication status
 if 'authenticated' not in st.session_state:
