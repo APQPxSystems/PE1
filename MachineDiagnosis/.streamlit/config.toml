@@ -1,7 +1,7 @@
 [theme]
 base = "dark"
-primaryColor = "#1E90FF"
-backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#262730"
-textColor = "#FAFAFA"
+primaryColor = "#1E90FF"  # Dodger Blue
+backgroundColor = "#0E1117"  # Very dark blue-gray
+secondaryBackgroundColor = "#262730"  # Darker secondary panel
+textColor = "#FAFAFA"  # Almost white text
 font = "sans serif"
