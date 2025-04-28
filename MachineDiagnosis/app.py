@@ -23,7 +23,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Define the correct password
-correct_password = st.secrets["general"]["correct_password"]
+correct_password = @pe01
 
 # Create a session state to store the authentication status
 if 'authenticated' not in st.session_state:
