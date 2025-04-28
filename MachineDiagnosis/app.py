@@ -22,6 +22,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Force dark background
+dark_theme_css = """
+<style>
+body {
+    background-color: #0E1117;
+    color: #FAFAFA;
+}
+</style>
+"""
+
+st.markdown(dark_theme_css, unsafe_allow_html=True)
+
 # Define the correct password
 correct_password = st.secrets["password"]
 
