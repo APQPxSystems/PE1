@@ -15,7 +15,7 @@ st.set_page_config(page_title="Machine Health Num | kentjk", layout="wide")
 # CSS styling
 st.markdown("""
     <style>
-    #MainMenu {visibility:visible;}
+    #MainMenu {visibility:hidden;}
     footer {visibility:hidden;}
     header {visibility:hidden;}
     .block-container {padding-top: 0rem; padding-bottom: 0rem;}
