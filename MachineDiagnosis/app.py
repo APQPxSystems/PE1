@@ -39,17 +39,14 @@ footer = """
     z-index: 1000;
 }
 
-.footer-left {
-    text-align: left;
+.footer-center {
+    text-align: center;
 }
 
-.footer-right {
-    text-align: right;
-}
 </style>
 
 <div class="footer">
-    <div class="footer-left">&copy; Kent Katigbak | Industrial Engineer | Lean Six Sigma Green Belt | Data Analyst</div>
+    <div class="footer-center">&copy; Kent Katigbak | Industrial Engineer | Lean Six Sigma Green Belt | Data Analyst</div>
 </div>
 """
 
