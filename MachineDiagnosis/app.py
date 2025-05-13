@@ -31,8 +31,6 @@ footer = """
     width: 100%;
     background-color: black;
     color: white;
-    display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 3px 10px;
     font-size: 12px !important;
