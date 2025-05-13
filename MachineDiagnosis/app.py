@@ -22,6 +22,40 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+footer = """
+<style>
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: black;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 12px !important;
+    z-index: 1000;
+}
+
+.footer-left {
+    text-align: left;
+}
+
+.footer-right {
+    text-align: right;
+}
+</style>
+
+<div class="footer">
+    <div class="footer-left">&copy; Kent Katigbak | Industrial Engineer | Lean Six Sigma Green Belt | Data Analyst</div>
+    <div class="footer-right">Machine Diagnosis App | version 1.0 | 2025</div>
+</div>
+"""
+
+st.markdown(footer, unsafe_allow_html=True)
+
 # Define the correct password
 correct_password = st.secrets["password"]
 
