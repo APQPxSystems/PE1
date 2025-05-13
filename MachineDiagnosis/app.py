@@ -50,7 +50,6 @@ footer = """
 
 <div class="footer">
     <div class="footer-left">&copy; Kent Katigbak | Industrial Engineer | Lean Six Sigma Green Belt | Data Analyst</div>
-    <div class="footer-right">Machine Diagnosis App | version 1.0 | 2025</div>
 </div>
 """
 
