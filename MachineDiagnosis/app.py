@@ -44,7 +44,7 @@ footer = """
 </style>
 
 <div class="footer">
-    <div class="footer-center">&copy; Kent Katigbak | Industrial Engineer | Lean Six Sigma Green Belt | Data Analyst</div>
+    <div class="footer-center">&copy; Kent Katigbak | PE1</div>
 </div>
 """
 
