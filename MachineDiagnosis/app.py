@@ -44,7 +44,7 @@ footer = """
 </style>
 
 <div class="footer">
-    <div class="footer-center">&copy; Kent Katigbak | PE1</div>
+    <div class="footer-center">&copy; Kent Katigbak | rev. 2.0 | 2025</div>
 </div>
 """
 
@@ -80,8 +80,8 @@ else:
 
     # Sidebar
     with st.sidebar:
-        st.info("©Kent Katigbak | PE1 | rev02 | 2025")
-        st.divider()
+        # st.info("©Kent Katigbak | PE1 | rev02 | 2025")
+        # st.divider()
         st.subheader("Full App Guide")
 
         faq= st.selectbox("Please select FAQ",
