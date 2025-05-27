@@ -222,249 +222,249 @@ else:
         else:
             st.info("📤 Please upload an Excel file to start.")
 
-# ---------- TAB 2: Summary & Health ----------
-with tab2:
-    if 'raw' not in st.session_state:
-        st.warning("⚠️ Please upload a file in the Upload tab.")
-    else:
-        raw = st.session_state['raw']
-
-        line = st.selectbox("📍 Select Line", raw["Line"].unique())
-        filtered = raw[raw["Line"] == line]
-
-        machine = st.selectbox("⚙️ Select Machine", filtered["Machine"].unique())
-        filtered = filtered[filtered["Machine"] == machine]
-
-        date_range = st.date_input("📅 Date Range", [])
-        if len(date_range) == 2:
-            start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-            filtered = filtered[(filtered["Call Date No Time"] >= start) & (filtered["Call Date No Time"] <= end)]
-            num_days = (end - start).days + 1
-            st.session_state['filtered'] = filtered
-            st.session_state['num_days'] = num_days
-
-            df = filtered.groupby("Machine No.", as_index=True).agg(
-                Total_Defects=("Machine No.", "count"),
-                Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
-                Total_Fixing_Time=("Fixing Time Duration (mins.)", "sum"),
-                Total_Loss_Time=("Total Loss Time", "sum")
-            )
-
-            # Calculate averages
-            for col in df.columns:
-                df[f"Avg_{col}"] = df[col] / num_days
-
-            # Round all float columns to 2 decimals
-            df = df.round(2)
-
-            # Categorize health
-            for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
-                        "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
-                df[f"{metric}_Status"] = categorize_health(df[metric], metric)
-
-            st.session_state['summary_df'] = df
-
-            if 'summary_df' in st.session_state:
-                st.subheader("📊 Machine Number Summary")
-                # Exclude columns that end with "_Status"
-                summary_no_status = st.session_state['summary_df'].loc[:, ~st.session_state['summary_df'].columns.str.endswith("_Status")]
-                st.dataframe(summary_no_status, use_container_width=True)
-
-                st.subheader(f"✅ Overall Machine Health Status \n ({start.date().strftime('%B %d, %Y')} to {end.date().strftime('%B %d, %Y')})")
-                health_cols = [col for col in st.session_state['summary_df'].columns if "Status" in col]
-                st.dataframe(st.session_state['summary_df'][health_cols].style.applymap(highlight_status), use_container_width=True)
-                
-                st.markdown("""
-                            Disclaimer: The data above is the accumulated data for the whole selected date range.
-                            Figures may look different on the daily basis as presented in the daily trend bar chart below.
-                            """)
-
-                # --- New Feature: Category Distribution and Trend ---
-                st.subheader("📈 Health Status Daily Trend")
-
-                metric_display = {
-                    "Avg_Total_Defects": "Total Defects",
-                    "Avg_Total_Waiting_Time": "Total Waiting Time",
-                    "Avg_Total_Fixing_Time": "Total Fixing Time",
-                    "Avg_Total_Loss_Time": "Total Loss Time"
-                }
-
-                metric_map = {v: k for k, v in metric_display.items()}
-                selected_metric = st.selectbox("📊 Select Metric for Trend", list(metric_display.values()))
-                selected_col = metric_map[selected_metric]
-
-                # Prepare daily machine stats with daily averages
-                daily = filtered.copy()
-                daily["Date"] = pd.to_datetime(daily["Call Date No Time"]).dt.date
-                grouped = daily.groupby(["Date", "Machine No."]).agg(
+    # ---------- TAB 2: Summary & Health ----------
+    with tab2:
+        if 'raw' not in st.session_state:
+            st.warning("⚠️ Please upload a file in the Upload tab.")
+        else:
+            raw = st.session_state['raw']
+    
+            line = st.selectbox("📍 Select Line", raw["Line"].unique())
+            filtered = raw[raw["Line"] == line]
+    
+            machine = st.selectbox("⚙️ Select Machine", filtered["Machine"].unique())
+            filtered = filtered[filtered["Machine"] == machine]
+    
+            date_range = st.date_input("📅 Date Range", [])
+            if len(date_range) == 2:
+                start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
+                filtered = filtered[(filtered["Call Date No Time"] >= start) & (filtered["Call Date No Time"] <= end)]
+                num_days = (end - start).days + 1
+                st.session_state['filtered'] = filtered
+                st.session_state['num_days'] = num_days
+    
+                df = filtered.groupby("Machine No.", as_index=True).agg(
                     Total_Defects=("Machine No.", "count"),
                     Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
                     Total_Fixing_Time=("Fixing Time Duration (mins.)", "sum"),
                     Total_Loss_Time=("Total Loss Time", "sum")
-                ).reset_index()
-
-                # Add daily averages (1-day basis)
-                metric_internal = selected_col.replace("Avg_", "")
-                grouped[selected_col] = grouped[metric_internal]
-
-                # Categorize machine health per day
-                grouped["Health_Status"] = categorize_health(grouped[selected_col], selected_col)
-
-                # Count health status per day and collect machine numbers accurately
-                status_counts = grouped.groupby(["Date", "Health_Status"]).agg(
-                    Count=("Health_Status", "size"),
-                    Machines=("Machine No.", lambda x: ', '.join(map(str, sorted(x.unique()))))
-                ).reset_index()
-
-                # Pivot tables for plotting
-                pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Count").fillna(0).astype(int)
-                machines_pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Machines").fillna('')
-
-                # Ensure order of bars
-                for status in ["Healthy", "Warning", "Critical"]:
-                    if status not in pivoted.columns:
-                        pivoted[status] = 0
-                        machines_pivoted[status] = ''
-
-                # Plotting
-                fig = go.Figure()
-                color_map = {"Healthy": "green", "Warning": "yellow", "Critical": "red"}
-
-                for status in ["Healthy", "Warning", "Critical"]:
-                    fig.add_trace(go.Bar(
-                        x=pivoted.index,
-                        y=pivoted[status],
-                        name=status,
-                        marker_color=color_map[status],
-                        hovertemplate=[
-                            f"Date: {date}<br>"
-                            f"{status}<br>"
-                            f"Count: {count}<br>"
-                            f"Machine No/s: {machines_pivoted.loc[date, status]}<br>"
-                            "<extra></extra>"
-                            for date, count in zip(pivoted.index, pivoted[status])
-                        ]
-                    ))
-
-                fig.update_layout(
-                    barmode='stack',
-                    title=dict(
-                        text=f"📆 Daily Health Status Count for {selected_metric} (by daily averages)",
-                        font=dict(color='black')  # Pure black title
-                    ),
-                    xaxis=dict(
-                        title=dict(text="Date", font=dict(color='black')),
-                        tickfont=dict(color='black'),
-                        linecolor='black',
-                        tickcolor='black'
-                    ),
-                    yaxis=dict(
-                        title=dict(text="Machine Count", font=dict(color='black')),
-                        tickfont=dict(color='black'),
-                        linecolor='black',
-                        tickcolor='black'
-                    ),
-                    legend=dict(
-                        title=dict(text="Health Status", font=dict(color='black')),
-                        font=dict(color='black')
-                    ),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    height=500
                 )
-                
-                st.plotly_chart(fig, use_container_width=True)
-
-                st.markdown("""
-                        Disclaimer: These are the data of the machines with Andon daily.
-                        The total will look diffrent each day because some machines do not have Andon everyday.
-                        """)
-                
-                                # --- Create Pivot Tables for Excel Export ---
-                health_metrics = {
-                    "Andon Calls": "count",  # special case: count Machine No.
-                    "Waiting Time": "Waiting Time (mins.)",
-                    "Fixing Time": "Fixing Time Duration (mins.)",
-                    "Loss Time": "Total Loss Time"
-                }
-
-                excel_pivots = {}
-
-                for sheet_name, metric in health_metrics.items():
-                    daily_copy = filtered.copy()
-                    daily_copy["Date"] = pd.to_datetime(daily_copy["Call Date No Time"]).dt.date
-
-                    if sheet_name == "Andon Calls":
-                        # Count Machine No. as Total_Defects
-                        grouped_metric = daily_copy.groupby(["Date", "Machine No."]).size().reset_index(name="Value")
-                        health_metric_name = "Avg_Total_Defects"
-                    else:
-                        grouped_metric = daily_copy.groupby(["Date", "Machine No."]).agg(Value=(metric, "sum")).reset_index()
-                        metric_name_map = {
-                            "Waiting Time": "Avg_Total_Waiting_Time",
-                            "Fixing Time": "Avg_Total_Fixing_Time",
-                            "Loss Time": "Avg_Total_Loss_Time"
-                        }
-                        health_metric_name = metric_name_map[sheet_name]
-
-                    grouped_metric["Health_Status"] = categorize_health(grouped_metric["Value"], health_metric_name)
-                    pivot_table = grouped_metric.pivot(index="Machine No.", columns="Date", values="Health_Status").fillna("No Data")
-                    excel_pivots[sheet_name] = pivot_table
-
-                # Convert pivot tables to Excel in memory
-                output = BytesIO()
-
-                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    for sheet_name, df_pivot in excel_pivots.items():
-                        # Write the DataFrame to Excel starting from the FIRST row (row=0)
-                        df_pivot.to_excel(writer, sheet_name=sheet_name, startrow=0, header=True, index=True)
-
-                        workbook = writer.book
-                        worksheet = writer.sheets[sheet_name]
-
-                        # Define formats
-                        border_format = workbook.add_format({'border': 1})
-                        critical_format = workbook.add_format({'bg_color': 'red', 'font_color': 'white', 'border': 1})
-                        warning_format = workbook.add_format({'bg_color': 'yellow', 'font_color': 'black', 'border': 1})
-                        healthy_format = workbook.add_format({'bg_color': 'green', 'font_color': 'white', 'border': 1})
-
-                        # Dimensions
-                        n_rows, n_cols = df_pivot.shape
-                        first_data_row = 1  # Because header is at row 0, data starts at row 1
-                        last_data_row = first_data_row + n_rows - 1
-                        first_col = 1  # Column B (skip index column)
-                        last_col = first_col + n_cols - 1
-
-                        # Convert column number to Excel column letters (A, B, ..., Z, AA, AB, ...)
-                        def colnum_string(n):
-                            string = ""
-                            while n >= 0:
-                                string = chr(n % 26 + ord('A')) + string
-                                n = n // 26 - 1
-                            return string
-
-                        start_cell = f"{colnum_string(first_col)}{first_data_row + 1}"  # +1 for Excel's 1-based indexing
-                        end_cell = f"{colnum_string(last_col)}{last_data_row + 1}"
-                        cell_range = f"{start_cell}:{end_cell}"
-
-                        # Apply formatting
-                        worksheet.conditional_format(cell_range, {'type': 'no_blanks', 'format': border_format})
-                        worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Critical', 'format': critical_format})
-                        worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Warning', 'format': warning_format})
-                        worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Healthy', 'format': healthy_format})
-                        worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'No Data', 'format': healthy_format})
-
-                output.seek(0)
-
-                st.download_button(
-                    label=f"📥 Download {line} {machine} Machine Health Status",
-                    data=output,
-                    file_name=f"{line}_{machine}_{start.date()}_to_{end.date()}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-        else:
-            st.markdown("Please select date range.")
+    
+                # Calculate averages
+                for col in df.columns:
+                    df[f"Avg_{col}"] = df[col] / num_days
+    
+                # Round all float columns to 2 decimals
+                df = df.round(2)
+    
+                # Categorize health
+                for metric in ["Avg_Total_Defects", "Avg_Total_Waiting_Time",
+                            "Avg_Total_Fixing_Time", "Avg_Total_Loss_Time"]:
+                    df[f"{metric}_Status"] = categorize_health(df[metric], metric)
+    
+                st.session_state['summary_df'] = df
+    
+                if 'summary_df' in st.session_state:
+                    st.subheader("📊 Machine Number Summary")
+                    # Exclude columns that end with "_Status"
+                    summary_no_status = st.session_state['summary_df'].loc[:, ~st.session_state['summary_df'].columns.str.endswith("_Status")]
+                    st.dataframe(summary_no_status, use_container_width=True)
+    
+                    st.subheader(f"✅ Overall Machine Health Status \n ({start.date().strftime('%B %d, %Y')} to {end.date().strftime('%B %d, %Y')})")
+                    health_cols = [col for col in st.session_state['summary_df'].columns if "Status" in col]
+                    st.dataframe(st.session_state['summary_df'][health_cols].style.applymap(highlight_status), use_container_width=True)
+                    
+                    st.markdown("""
+                                Disclaimer: The data above is the accumulated data for the whole selected date range.
+                                Figures may look different on the daily basis as presented in the daily trend bar chart below.
+                                """)
+    
+                    # --- New Feature: Category Distribution and Trend ---
+                    st.subheader("📈 Health Status Daily Trend")
+    
+                    metric_display = {
+                        "Avg_Total_Defects": "Total Defects",
+                        "Avg_Total_Waiting_Time": "Total Waiting Time",
+                        "Avg_Total_Fixing_Time": "Total Fixing Time",
+                        "Avg_Total_Loss_Time": "Total Loss Time"
+                    }
+    
+                    metric_map = {v: k for k, v in metric_display.items()}
+                    selected_metric = st.selectbox("📊 Select Metric for Trend", list(metric_display.values()))
+                    selected_col = metric_map[selected_metric]
+    
+                    # Prepare daily machine stats with daily averages
+                    daily = filtered.copy()
+                    daily["Date"] = pd.to_datetime(daily["Call Date No Time"]).dt.date
+                    grouped = daily.groupby(["Date", "Machine No."]).agg(
+                        Total_Defects=("Machine No.", "count"),
+                        Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
+                        Total_Fixing_Time=("Fixing Time Duration (mins.)", "sum"),
+                        Total_Loss_Time=("Total Loss Time", "sum")
+                    ).reset_index()
+    
+                    # Add daily averages (1-day basis)
+                    metric_internal = selected_col.replace("Avg_", "")
+                    grouped[selected_col] = grouped[metric_internal]
+    
+                    # Categorize machine health per day
+                    grouped["Health_Status"] = categorize_health(grouped[selected_col], selected_col)
+    
+                    # Count health status per day and collect machine numbers accurately
+                    status_counts = grouped.groupby(["Date", "Health_Status"]).agg(
+                        Count=("Health_Status", "size"),
+                        Machines=("Machine No.", lambda x: ', '.join(map(str, sorted(x.unique()))))
+                    ).reset_index()
+    
+                    # Pivot tables for plotting
+                    pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Count").fillna(0).astype(int)
+                    machines_pivoted = status_counts.pivot(index="Date", columns="Health_Status", values="Machines").fillna('')
+    
+                    # Ensure order of bars
+                    for status in ["Healthy", "Warning", "Critical"]:
+                        if status not in pivoted.columns:
+                            pivoted[status] = 0
+                            machines_pivoted[status] = ''
+    
+                    # Plotting
+                    fig = go.Figure()
+                    color_map = {"Healthy": "green", "Warning": "yellow", "Critical": "red"}
+    
+                    for status in ["Healthy", "Warning", "Critical"]:
+                        fig.add_trace(go.Bar(
+                            x=pivoted.index,
+                            y=pivoted[status],
+                            name=status,
+                            marker_color=color_map[status],
+                            hovertemplate=[
+                                f"Date: {date}<br>"
+                                f"{status}<br>"
+                                f"Count: {count}<br>"
+                                f"Machine No/s: {machines_pivoted.loc[date, status]}<br>"
+                                "<extra></extra>"
+                                for date, count in zip(pivoted.index, pivoted[status])
+                            ]
+                        ))
+    
+                    fig.update_layout(
+                        barmode='stack',
+                        title=dict(
+                            text=f"📆 Daily Health Status Count for {selected_metric} (by daily averages)",
+                            font=dict(color='black')  # Pure black title
+                        ),
+                        xaxis=dict(
+                            title=dict(text="Date", font=dict(color='black')),
+                            tickfont=dict(color='black'),
+                            linecolor='black',
+                            tickcolor='black'
+                        ),
+                        yaxis=dict(
+                            title=dict(text="Machine Count", font=dict(color='black')),
+                            tickfont=dict(color='black'),
+                            linecolor='black',
+                            tickcolor='black'
+                        ),
+                        legend=dict(
+                            title=dict(text="Health Status", font=dict(color='black')),
+                            font=dict(color='black')
+                        ),
+                        plot_bgcolor='white',
+                        paper_bgcolor='white',
+                        height=500
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+    
+                    st.markdown("""
+                            Disclaimer: These are the data of the machines with Andon daily.
+                            The total will look diffrent each day because some machines do not have Andon everyday.
+                            """)
+                    
+                                    # --- Create Pivot Tables for Excel Export ---
+                    health_metrics = {
+                        "Andon Calls": "count",  # special case: count Machine No.
+                        "Waiting Time": "Waiting Time (mins.)",
+                        "Fixing Time": "Fixing Time Duration (mins.)",
+                        "Loss Time": "Total Loss Time"
+                    }
+    
+                    excel_pivots = {}
+    
+                    for sheet_name, metric in health_metrics.items():
+                        daily_copy = filtered.copy()
+                        daily_copy["Date"] = pd.to_datetime(daily_copy["Call Date No Time"]).dt.date
+    
+                        if sheet_name == "Andon Calls":
+                            # Count Machine No. as Total_Defects
+                            grouped_metric = daily_copy.groupby(["Date", "Machine No."]).size().reset_index(name="Value")
+                            health_metric_name = "Avg_Total_Defects"
+                        else:
+                            grouped_metric = daily_copy.groupby(["Date", "Machine No."]).agg(Value=(metric, "sum")).reset_index()
+                            metric_name_map = {
+                                "Waiting Time": "Avg_Total_Waiting_Time",
+                                "Fixing Time": "Avg_Total_Fixing_Time",
+                                "Loss Time": "Avg_Total_Loss_Time"
+                            }
+                            health_metric_name = metric_name_map[sheet_name]
+    
+                        grouped_metric["Health_Status"] = categorize_health(grouped_metric["Value"], health_metric_name)
+                        pivot_table = grouped_metric.pivot(index="Machine No.", columns="Date", values="Health_Status").fillna("No Data")
+                        excel_pivots[sheet_name] = pivot_table
+    
+                    # Convert pivot tables to Excel in memory
+                    output = BytesIO()
+    
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        for sheet_name, df_pivot in excel_pivots.items():
+                            # Write the DataFrame to Excel starting from the FIRST row (row=0)
+                            df_pivot.to_excel(writer, sheet_name=sheet_name, startrow=0, header=True, index=True)
+    
+                            workbook = writer.book
+                            worksheet = writer.sheets[sheet_name]
+    
+                            # Define formats
+                            border_format = workbook.add_format({'border': 1})
+                            critical_format = workbook.add_format({'bg_color': 'red', 'font_color': 'white', 'border': 1})
+                            warning_format = workbook.add_format({'bg_color': 'yellow', 'font_color': 'black', 'border': 1})
+                            healthy_format = workbook.add_format({'bg_color': 'green', 'font_color': 'white', 'border': 1})
+    
+                            # Dimensions
+                            n_rows, n_cols = df_pivot.shape
+                            first_data_row = 1  # Because header is at row 0, data starts at row 1
+                            last_data_row = first_data_row + n_rows - 1
+                            first_col = 1  # Column B (skip index column)
+                            last_col = first_col + n_cols - 1
+    
+                            # Convert column number to Excel column letters (A, B, ..., Z, AA, AB, ...)
+                            def colnum_string(n):
+                                string = ""
+                                while n >= 0:
+                                    string = chr(n % 26 + ord('A')) + string
+                                    n = n // 26 - 1
+                                return string
+    
+                            start_cell = f"{colnum_string(first_col)}{first_data_row + 1}"  # +1 for Excel's 1-based indexing
+                            end_cell = f"{colnum_string(last_col)}{last_data_row + 1}"
+                            cell_range = f"{start_cell}:{end_cell}"
+    
+                            # Apply formatting
+                            worksheet.conditional_format(cell_range, {'type': 'no_blanks', 'format': border_format})
+                            worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Critical', 'format': critical_format})
+                            worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Warning', 'format': warning_format})
+                            worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'Healthy', 'format': healthy_format})
+                            worksheet.conditional_format(cell_range, {'type': 'text', 'criteria': 'containing', 'value': 'No Data', 'format': healthy_format})
+    
+                    output.seek(0)
+    
+                    st.download_button(
+                        label=f"📥 Download {line} {machine} Machine Health Status",
+                        data=output,
+                        file_name=f"{line}_{machine}_{start.date()}_to_{end.date()}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+    
+            else:
+                st.markdown("Please select date range.")
 
     # ---------- TAB 3: Diagnosis ----------
     def update_selected_machine():
