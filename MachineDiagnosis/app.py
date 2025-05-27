@@ -378,7 +378,52 @@ else:
                             Disclaimer: These are the data of the machines with Andon daily.
                             The total will look diffrent each day because some machines do not have Andon everyday.
                             """)
-                    
+
+                # --- Create Pivot Tables for Excel Export ---
+                health_metrics = {
+                    "Andon Calls": "count",  # special case: count Machine No.
+                    "Waiting Time": "Waiting Time (mins.)",
+                    "Fixing Time": "Fixing Time Duration (mins.)",
+                    "Loss Time": "Total Loss Time"
+                }
+
+                excel_pivots = {}
+
+                for sheet_name, metric in health_metrics.items():
+                    daily_copy = filtered.copy()
+                    daily_copy["Date"] = pd.to_datetime(daily_copy["Call Date No Time"]).dt.date
+
+                    if sheet_name == "Andon Calls":
+                        # Count Machine No. as Total_Defects
+                        grouped_metric = daily_copy.groupby(["Date", "Machine No."]).size().reset_index(name="Value")
+                        health_metric_name = "Avg_Total_Defects"
+                    else:
+                        grouped_metric = daily_copy.groupby(["Date", "Machine No."]).agg(Value=(metric, "sum")).reset_index()
+                        metric_name_map = {
+                            "Waiting Time": "Avg_Total_Waiting_Time",
+                            "Fixing Time": "Avg_Total_Fixing_Time",
+                            "Loss Time": "Avg_Total_Loss_Time"
+                        }
+                        health_metric_name = metric_name_map[sheet_name]
+
+                    grouped_metric["Health_Status"] = categorize_health(grouped_metric["Value"], health_metric_name)
+                    pivot_table = grouped_metric.pivot(index="Machine No.", columns="Date", values="Health_Status").fillna("No Data")
+                    excel_pivots[sheet_name] = pivot_table
+
+                # Convert pivot tables to Excel in memory
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    for sheet_name, df_pivot in excel_pivots.items():
+                        df_pivot.to_excel(writer, sheet_name=sheet_name)
+                output.seek(0)
+
+                st.download_button(
+                    label="📥 Download Health Status Pivot Excel",
+                    data=output,
+                    file_name=f"Health_Status_Pivot_{start.date()}_to_{end.date()}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+    
             else:
                 st.markdown("Please select date range.")
 
