@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from statsmodels.tsa.arima.model import ARIMA
 import matplotlib.pyplot as plt
+from io import BytesIO
 
 st.set_page_config(page_title="Machine Health Num | kentjk", layout="wide")
 
