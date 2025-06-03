@@ -199,9 +199,16 @@ else:
 
         return andon_forecast, loss_forecast, mttr_forecast
 
+    # Clean sheet names in excel
+    def sanitize_sheet_name(name):
+        invalid_chars = ['\\', '/', '*', '?', ':', '[', ']']
+        for ch in invalid_chars:
+            name = name.replace(ch, "")
+        return name[:31]
+
     # ---------------- MAIN APP ----------------
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📁 Upload & Filter", "📊 Summary & Health", "🔍 Diagnosis", "📈 Trends", "📅 ARIMA Forecast"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📁 Upload & Filter", "📊 Summary & Health", "🔍 Diagnosis", "📈 Trends", "📅 ARIMA Forecast", "📦 Downloads"])
 
     # ---------- TAB 1: Upload & Filter ----------
     with tab1:
@@ -781,6 +788,125 @@ else:
             except Exception as e:
                 # Display error message
                 st.error(f"Cannot forecast due to: {str(e)}")
+
+    # ---------- TAB 6: Downloads ----------
+    with tab6:
+        if 'raw' not in st.session_state or 'num_days' not in st.session_state:
+            st.warning("⚠️ Please upload a file and select date range in Tab 2 first.")
+        else:
+            raw = st.session_state['raw']
+            start = pd.to_datetime(st.session_state['filtered']["Call Date No Time"].min())
+            end = pd.to_datetime(st.session_state['filtered']["Call Date No Time"].max())
+            date_range_str = f"{start.date()}_to_{end.date()}"
+    
+            # Mapping of button label to health metric and data column
+            download_options = {
+                "Andon Logs Status": ("Avg_Total_Defects", "count"),
+                "Waiting Time Status": ("Avg_Total_Waiting_Time", "Waiting Time (mins.)"),
+                "Fixin Time Status": ("Avg_Total_Fixing_Time", "Fixing Time Duration (mins.)"),
+                "Loss Time Status": ("Avg_Total_Loss_Time", "Total Loss Time")
+            }
+    
+            def sanitize_sheet_name(name):
+                invalid_chars = ['\\', '/', '*', '?', ':', '[', ']']
+                for ch in invalid_chars:
+                    name = name.replace(ch, "")
+                return name[:31]
+    
+            def generate_zip(metric_label, metric_key, column_source):
+                zip_buffer = BytesIO()
+    
+                with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+                    for line in raw["Line"].unique():
+                        line_data = raw[raw["Line"] == line]
+                        excel_buffer = BytesIO()
+    
+                        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                            workbook = writer.book
+    
+                            for machine in line_data["Machine"].unique():
+                                df_machine = line_data[line_data["Machine"] == machine].copy()
+                                df_machine["Date"] = pd.to_datetime(df_machine["Call Date No Time"]).dt.date
+                                df_machine = df_machine[(df_machine["Date"] >= start.date()) & (df_machine["Date"] <= end.date())]
+    
+                                if df_machine.empty:
+                                    continue  # Skip machines with no data in date range
+    
+                                # Group and pivot
+                                if column_source == "count":
+                                    grouped = df_machine.groupby(["Date", "Machine No."]).size().reset_index(name="Value")
+                                else:
+                                    grouped = df_machine.groupby(["Date", "Machine No."]).agg(Value=(column_source, "sum")).reset_index()
+    
+                                grouped["Health_Status"] = categorize_health(grouped["Value"], metric_key)
+                                pivot = grouped.pivot(index="Machine No.", columns="Date", values="Health_Status").fillna("No Data")
+    
+                                if pivot.empty:
+                                    continue  # Avoid empty pivot tables
+    
+                                safe_sheet_name = sanitize_sheet_name(machine)
+                                pivot.to_excel(writer, sheet_name=safe_sheet_name, startrow=0)
+                                worksheet = writer.sheets[safe_sheet_name]
+    
+                                # Determine formatting range
+                                n_rows, n_cols = pivot.shape
+                                first_row, first_col = 1, 1
+                                last_row = first_row + n_rows - 1
+                                last_col = first_col + n_cols - 1
+    
+                                def colnum_string(n):
+                                    string = ""
+                                    while n >= 0:
+                                        string = chr(n % 26 + ord('A')) + string
+                                        n = n // 26 - 1
+                                    return string
+    
+                                start_cell = f"{colnum_string(first_col)}{first_row + 1}"
+                                end_cell = f"{colnum_string(last_col)}{last_row + 1}"
+                                cell_range = f"{start_cell}:{end_cell}"
+    
+                                # Conditional formatting
+                                formats = {
+                                    "Critical": workbook.add_format({'bg_color': 'red', 'font_color': 'white', 'border': 1}),
+                                    "Warning": workbook.add_format({'bg_color': 'yellow', 'font_color': 'black', 'border': 1}),
+                                    "Healthy": workbook.add_format({'bg_color': 'green', 'font_color': 'white', 'border': 1}),
+                                    "No Data": workbook.add_format({'bg_color': 'white', 'border': 1}),
+                                }
+    
+                                for status, fmt in formats.items():
+                                    worksheet.conditional_format(cell_range, {
+                                        'type': 'text',
+                                        'criteria': 'containing',
+                                        'value': status,
+                                        'format': fmt
+                                    })
+    
+                                # Auto-fit data columns
+                                for col_num, col in enumerate(pivot.columns, start=1):
+                                    col_width = max([len(str(v)) for v in pivot[col].values] + [len(str(col))]) + 2
+                                    worksheet.set_column(col_num, col_num, col_width)
+    
+                                # Auto-fit index column (Machine No.)
+                                if not pivot.index.empty:
+                                    index_width = max([len(str(v)) for v in pivot.index] + [len("Machine No.")]) + 2
+                                    worksheet.set_column(0, 0, index_width)
+    
+                        excel_filename = f"{line}_{metric_label.replace(' ', '_').lower()}_{date_range_str}.xlsx"
+                        zip_file.writestr(excel_filename, excel_buffer.getvalue())
+    
+                zip_buffer.seek(0)
+                return zip_buffer
+    
+            # UI Buttons and Handlers
+            for label, (metric_key, source_col) in download_options.items():
+                if st.button(label):
+                    zip_bytes = generate_zip(label, metric_key, source_col)
+                    st.download_button(
+                        label=f"📦 Download {label} ZIP",
+                        data=zip_bytes,
+                        file_name=f"{label.replace(' ', '_').lower()}_{date_range_str}.zip",
+                        mime="application/zip"
+                    )
 
 st.divider()
 
