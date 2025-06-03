@@ -804,7 +804,7 @@ else:
             download_options = {
                 "Andon Logs Status": ("Avg_Total_Defects", "count"),
                 "Waiting Time Status": ("Avg_Total_Waiting_Time", "Waiting Time (mins.)"),
-                "Fixin Time Status": ("Avg_Total_Fixing_Time", "Fixing Time Duration (mins.)"),
+                "Fixing Time Status": ("Avg_Total_Fixing_Time", "Fixing Time Duration (mins.)"),
                 "Loss Time Status": ("Avg_Total_Loss_Time", "Total Loss Time")
             }
     
