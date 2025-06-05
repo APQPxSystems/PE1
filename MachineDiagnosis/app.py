@@ -133,7 +133,7 @@ else:
     @st.cache_data(show_spinner="📂 Loading data...")
     def load_data(file):
         df = pd.read_excel(file)
-        df["Call Date No Time"] = pd.to_datetime(df["Call Date No Time"], errors="coerce")
+        df["Adjusted Call Date Time"] = pd.to_datetime(df["Adjusted Call Date Time"], errors="coerce")
         return df
 
     # --- HELPER: Health logic ---
@@ -219,7 +219,7 @@ else:
             raw = load_data(uploaded_file)
 
             # Validate columns
-            required = ["Call Date No Time", "Line", "Machine", "Machine No.",
+            required = ["Adjusted Call Date Time", "Line", "Machine", "Machine No.",
                         "Waiting Time (mins.)", "Fixing Time Duration (mins.)", "Total Loss Time"]
             if not all(col in raw.columns for col in required):
                 st.error("❌ Missing one or more required columns.")
@@ -246,7 +246,7 @@ else:
             date_range = st.date_input("📅 Date Range", [])
             if len(date_range) == 2:
                 start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
-                filtered = filtered[(filtered["Call Date No Time"] >= start) & (filtered["Call Date No Time"] <= end)]
+                filtered = filtered[(filtered["Adjusted Call Date Time"] >= start) & (filtered["Adjusted Call Date Time"] <= end)]
                 num_days = (end - start).days + 1
                 st.session_state['filtered'] = filtered
                 st.session_state['num_days'] = num_days
@@ -303,7 +303,7 @@ else:
     
                     # Prepare daily machine stats with daily averages
                     daily = filtered.copy()
-                    daily["Date"] = pd.to_datetime(daily["Call Date No Time"]).dt.date
+                    daily["Date"] = pd.to_datetime(daily["Adjusted Call Date Time"]).dt.date
                     grouped = daily.groupby(["Date", "Machine No."]).agg(
                         Total_Defects=("Machine No.", "count"),
                         Total_Waiting_Time=("Waiting Time (mins.)", "sum"),
@@ -400,7 +400,7 @@ else:
     
                     for sheet_name, metric in health_metrics.items():
                         daily_copy = filtered.copy()
-                        daily_copy["Date"] = pd.to_datetime(daily_copy["Call Date No Time"]).dt.date
+                        daily_copy["Date"] = pd.to_datetime(daily_copy["Adjusted Call Date Time"]).dt.date
     
                         if sheet_name == "Andon Calls":
                             # Count Machine No. as Total_Defects
@@ -550,7 +550,7 @@ else:
             trend_data = filtered[filtered["Machine No."] == selected_machine]
 
             # Aggregate data by day
-            trend_data['Date'] = trend_data['Call Date No Time'].dt.date
+            trend_data['Date'] = trend_data['Adjusted Call Date Time'].dt.date
             daily_data = trend_data.groupby('Date').agg(
                 Total_Loss_Time=('Total Loss Time', 'sum'),
                 Andon_Count=('Total Loss Time', 'count')
@@ -701,7 +701,7 @@ else:
 
             # Filter the data based on the selected machine
             forecast_data = filtered[filtered["Machine No."] == selected_machine]
-            forecast_data['Date'] = forecast_data['Call Date No Time'].dt.date
+            forecast_data['Date'] = forecast_data['Adjusted Call Date Time'].dt.date
             
             # Aggregate by date (just in case)
             daily_data = forecast_data.groupby('Date').agg(
@@ -797,8 +797,8 @@ else:
             st.warning("⚠️ Please upload a file and select date range in Tab 2 first.")
         else:
             raw = st.session_state['raw']
-            start = pd.to_datetime(st.session_state['filtered']["Call Date No Time"].min())
-            end = pd.to_datetime(st.session_state['filtered']["Call Date No Time"].max())
+            start = pd.to_datetime(st.session_state['filtered']["Adjusted Call Date Time"].min())
+            end = pd.to_datetime(st.session_state['filtered']["Adjusted Call Date Time"].max())
             date_range_str = f"{start.date()}_to_{end.date()}"
     
             # Mapping of button label to health metric and data column
@@ -828,7 +828,7 @@ else:
     
                             for machine in line_data["Machine"].unique():
                                 df_machine = line_data[line_data["Machine"] == machine].copy()
-                                df_machine["Date"] = pd.to_datetime(df_machine["Call Date No Time"]).dt.date
+                                df_machine["Date"] = pd.to_datetime(df_machine["Adjusted Call Date Time"]).dt.date
                                 df_machine = df_machine[(df_machine["Date"] >= start.date()) & (df_machine["Date"] <= end.date())]
     
                                 if df_machine.empty:
