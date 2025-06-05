@@ -488,6 +488,7 @@ else:
             num_days = st.session_state['num_days']
 
             machine_list = summary_df.index.tolist()
+            machine_list = [int(x) for x in machine_list]
             
             # Use the selectbox with on_change to update the session state
             selected_machine = st.selectbox(
