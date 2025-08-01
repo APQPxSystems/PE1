@@ -1,0 +1,58 @@
+.block-container {
+    padding-top: 0rem;
+    padding-bottom: 0rem;
+    font-family: "Meiryo UI", "Meiryo", "Segoe UI", "Helvetica Neue", sans-serif;
+    background: azure;
+    color: black;
+}
+
+h1 {
+    font-family: "Meiryo UI", "Meiryo", "Segoe UI", "Helvetica Neue", sans-serif;
+    font-weight: 700;
+    color: black;
+    padding: 1.25rem 0px 1rem;
+    margin: 0px;
+    line-height: 1.2;
+}
+
+.st-emotion-cache-bm2z3a {
+    display: flex
+;
+    flex-direction: column;
+    width: 100%;
+    overflow: auto;
+    -webkit-box-align: center;
+    align-items: center;
+    background-color: azure;
+}
+
+.st-emotion-cache-1erivf3 {
+    display: flex
+;
+    -webkit-box-align: center;
+    align-items: center;
+    padding: 1rem;
+    background-color: slategrey;
+    border-radius: 0.5rem;
+    color: rgb(250, 250, 250);
+}
+
+.st-emotion-cache-15hul6a {
+    display: inline-flex
+;
+    -webkit-box-align: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    justify-content: center;
+    font-weight: 400;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    min-height: 2.5rem;
+    margin: 0px;
+    line-height: 1.6;
+    color: rgb(255, 255, 255);
+    width: auto;
+    user-select: none;
+    background-color: darkslategrey;
+    border: 1px solid rgba(250, 250, 250, 0.2);
+}
