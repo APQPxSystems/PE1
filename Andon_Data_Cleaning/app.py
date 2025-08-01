@@ -57,7 +57,7 @@ if df1 is not None:
     with st.spinner('Processing data... Please wait...'):
     
         df1 = pd.read_excel(df1)
-        df2 = pd.read_excel("Andon_Data_CleaningProblem_Category.xlsx")
+        df2 = pd.read_excel("Andon_Data_Cleaning/Problem_Category.xlsx")
 
         # Function to adjust to production day and get shift
         def get_shift_and_adjusted_date(ts):
