@@ -227,6 +227,6 @@ if df1 is not None:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         
-with open("style.css") as f:
+with open("Andon_Data_Cleaning/style.css") as f:
     css = f.read()
 st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
